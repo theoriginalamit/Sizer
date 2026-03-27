@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Position Sizer</title>
+    <style>
+        :root { --bg-color: #131722; --card-bg: #1e222d; --text-main: #d1d4dc; --text-muted: #8a8a8a; --accent: #8a8a8a; --success: #26a69a; --danger: #cf6679; --border: #2a2e39; } 
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; } 
+        body { background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 15px; padding-bottom: 340px;} /* Increased to accommodate the taller sticky footer */
+        h2 { text-align: center; margin-top: 5px; color: var(--text-main); font-size: 1.4rem; font-weight: 500;} 
+        .card { background-color: var(--card-bg); border-radius: 8px; padding: 15px; margin-bottom: 15px; border: 1px solid var(--border); } 
+        .row { display: flex; gap: 10px; margin-bottom: 12px; } 
+        .col { flex: 1; display: flex; flex-direction: column; } 
+        label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; } 
+        input, select { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-size: 1rem; width: 100%; outline: none; } 
+        input:focus, select:focus { border-color: var(--text-muted); } 
+        .btn-secondary { background-color: transparent; color: var(--text-muted); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 1rem; font-weight: bold; width: 100%; cursor: pointer; margin-top: 10px; } 
+        .btn-secondary:active { background-color: #2a2e39; } 
+        .copy-btn { background-color: transparent; color: var(--success); border: 1px solid var(--success); border-radius: 6px; padding: 8px 16px; font-size: 0.95rem; cursor: pointer; font-weight: bold; } 
+        .copy-btn:active { background-color: rgba(38, 166, 154, 0.2); } 
+        .result-box { margin-bottom: 10px; } 
+        .result-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.95rem; color: var(--text-main); } 
+        .header-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; } 
+        .dir-label { font-size: 0.85rem; font-weight: bold; } 
+        .pip-distance-inline { font-size: 0.8rem; color: var(--accent); } 
+        /* Sticky Footer Styles */ 
+        .sticky-footer { position: fixed; bottom: 0; left: 0; width: 100%; background-color: var(--card-bg); border-top: 1px solid var(--border); padding: 15px 20px; z-index: 1000; box-shadow: 0 -4px 10px rgba(0,0,0,0.5); display: flex; flex-direction: column; } 
+        .sticky-footer-bottom { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 5px; }
+        .sticky-lots { font-size: 1.4rem; font-weight: bold; color: var(--success); }
+    </style>
+</head>
+<body>
+
+    <h2>Position Sizer</h2>
+
+    <div class="card">
+        <div class="row">
+            <div class="col">
+                <label>Account Balance (AUD)</label>
+                <input type="number" id="balance" value="10000" oninput="calculate()">
+            </div>
+            <div class="col">
+                <label>Risk (%)</label>
+                <input type="number" id="risk" step="0.1" value="1.0" oninput="calculate()">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <label>Current Used Margin (AUD)</label>
+                <input type="number" id="current-margin" value="0" oninput="calculate()">
+            </div>
+            <div class="col">
+                <label>Pair</label>
+                <select id="pair" onchange="updatePairDefaults(); calculate();">
+                    <option value="US500">US500</option><option value="US2000">US2000</option><option value="DE40">DE40</option>
+                    <option value="GBPUSD" selected>GBPUSD</option><option value="EURUSD">EURUSD</option>
+                    <option value="USDCHF">USDCHF</option><option value="USDJPY">USDJPY</option><option value="USDCAD">USDCAD</option>
+                    <option value="AUDUSD">AUDUSD</option><option value="NZDUSD">NZDUSD</option><option value="EURGBP">EURGBP</option>
+                    <option value="EURJPY">EURJPY</option><option value="GBPJPY">GBPJPY</option><option value="XAUUSD">XAUUSD</option><option value="XAGUSD">XAGUSD</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="row" id="manual-rate-row" style="display:none;">
+            <div class="col">
+                <label>⚠️ Offline: Enter Quote/AUD Rate</label>
+                <input type="number" id="manual-rate" step="0.00001" oninput="calculate()">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <div class="header-row">
+                    <label>Entry Price</label>
+                    <span id="trade-dir" class="dir-label"></span>
+                </div>
+                <input type="number" id="entry" step="0.00001" oninput="calculate()">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <div class="header-row">
+                    <label>Stop Loss</label>
+                    <span id="sl-distance" class="pip-distance-inline"></span>
+                </div>
+                <input type="number" id="sl" step="0.00001" oninput="calculate()">
+            </div>
+            <div class="col">
+                <div class="header-row">
+                    <label>Take Profit</label>
+                    <span id="tp-distance" class="pip-distance-inline"></span>
+                </div>
+                <input type="number" id="tp" step="0.00001" oninput="calculate()">
+            </div>
+        </div>
+        
+        <button class="btn-secondary" onclick="clearTrade()">Clear</button>
+    </div>
+
+    <div class="sticky-footer">
+        <div class="result-box">
+            <div class="result-item"><span>Risk (AUD):</span><span id="res-risk-aud" style="color:var(--danger)">$0.00</span></div>
+            <div class="result-item"><span>Reward (AUD):</span><span id="res-reward-aud" style="color:var(--success)">$0.00</span></div>
+            <div class="result-item"><span>Reward / Risk:</span><span id="res-rr">0.00</span></div>
+            <div class="result-item"><span>Flat Comm. Deducted:</span><span id="res-comm">$0.00</span></div>
+            <div class="result-item"><span>Position Margin (AUD):</span><span id="res-pos-margin">$0.00</span></div>
+            <div class="result-item"><span>Future Used Margin:</span><span id="res-fut-margin">$0.00</span></div>
+            <div class="result-item"><span>Free Margin:</span><span id="res-free-margin">$0.00</span></div>
+            <div class="result-item"><span>Max Size by Margin:</span><span id="res-max-lots">0.00</span></div>
+        </div>
+
+        <div class="sticky-footer-bottom">
+            <div>
+                <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Position Size (Lots)</div>
+                <div id="res-lots" class="sticky-lots">0.00</div>
+            </div>
+            <button id="copy-btn" class="copy-btn" onclick="copyLots()">Copy</button>
+        </div>
+    </div>
+
+    <script>
+        let exchangeRates = {}; 
+        const FLAT_COMMISSION = 9.00; // Hardcoded $9 round turn 
+        const pairConfig = { 
+            "US500": { lev: 20, cs: 1, pip: 1 }, 
+            "US2000": { lev: 10, cs: 1, pip: 1 }, 
+            "DE40": { lev: 20, cs: 1, pip: 1 }, 
+            "GBPUSD": { lev: 30, cs: 100000, pip: 10000 }, 
+            "EURUSD": { lev: 30, cs: 100000, pip: 10000 }, 
+            "USDCHF": { lev: 30, cs: 100000, pip: 10000 }, 
+            "USDJPY": { lev: 30, cs: 100000, pip: 100 }, 
+            "USDCAD": { lev: 30, cs: 100000, pip: 10000 }, 
+            "AUDUSD": { lev: 30, cs: 100000, pip: 10000 }, 
+            "NZDUSD": { lev: 20, cs: 100000, pip: 10000 }, 
+            "EURGBP": { lev: 30, cs: 100000, pip: 10000 }, 
+            "EURJPY": { lev: 30, cs: 100000, pip: 100 }, 
+            "GBPJPY": { lev: 30, cs: 100000, pip: 100 }, 
+            "XAUUSD": { lev: 20, cs: 100, pip: 10 }, 
+            "XAGUSD": { lev: 10, cs: 1000, pip: 100 } 
+        }; 
+        const fmt = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); 
+        
+        function saveSettings() { 
+            localStorage.setItem('ps_balance', document.getElementById('balance').value); 
+            localStorage.setItem('ps_risk', document.getElementById('risk').value); 
+        } 
+        
+        function loadSettings() { 
+            if (localStorage.getItem('ps_balance')) document.getElementById('balance').value = localStorage.getItem('ps_balance'); 
+            if (localStorage.getItem('ps_risk')) document.getElementById('risk').value = localStorage.getItem('ps_risk'); 
+        } 
+        
+        document.getElementById('balance').addEventListener('input', saveSettings); 
+        document.getElementById('risk').addEventListener('input', saveSettings); 
+        
+        async function fetchRates() { 
+            try { 
+                const response = await fetch('https://api.exchangerate-api.com/v4/latest/AUD'); 
+                const data = await response.json(); 
+                exchangeRates = data.rates; 
+                document.getElementById('manual-rate-row').style.display = 'none'; 
+                updatePairDefaults(); 
+                calculate(); 
+            } catch (e) { 
+                document.getElementById('manual-rate-row').style.display = 'flex'; 
+                updatePairDefaults(); 
+            } 
+        } 
+        
+        function getQuoteCurrency(pair) { 
+            if (pair === "US500" || pair === "US2000" || pair === "XAUUSD" || pair === "XAGUSD") return "USD"; 
+            if (pair === "DE40") return "EUR"; 
+            return pair.substring(3, 6); 
+        } 
+        
+        function getBaseCurrency(pair) { 
+            if (pair === "US500" || pair === "US2000" || pair === "DE40") return pair; 
+            if (pair === "XAUUSD") return "XAU"; 
+            if (pair === "XAGUSD") return "XAG"; 
+            return pair.substring(0, 3); 
+        } 
+        
+        function updatePairDefaults() { 
+            const pair = document.getElementById('pair').value; 
+            const rateInput = document.getElementById('manual-rate'); 
+            const quote = getQuoteCurrency(pair); 
+            if (exchangeRates[quote]) { 
+                rateInput.value = exchangeRates[quote]; 
+            } else { 
+                rateInput.value = 1.0; 
+            } 
+        } 
+        
+        function resetResults() { 
+            document.getElementById('res-lots').innerText = '0.00'; 
+            document.getElementById('res-risk-aud').innerText = '$0.00'; 
+            document.getElementById('res-reward-aud').innerText = '$0.00'; 
+            document.getElementById('res-rr').innerText = '0.00'; 
+            document.getElementById('res-comm').innerText = '$0.00'; 
+            document.getElementById('res-pos-margin').innerText = '$0.00'; 
+            document.getElementById('res-fut-margin').innerText = '$0.00'; 
+            document.getElementById('res-free-margin').innerText = '$0.00'; 
+            document.getElementById('res-max-lots').innerText = '0.00'; 
+            document.getElementById('sl-distance').innerText = ''; 
+            document.getElementById('tp-distance').innerText = ''; 
+            document.getElementById('trade-dir').innerText = ''; 
+        } 
+        
+        function calculate() { 
+            const entry = parseFloat(document.getElementById('entry').value); 
+            const sl = parseFloat(document.getElementById('sl').value); 
+            const tp = parseFloat(document.getElementById('tp').value); 
+            const pair = document.getElementById('pair').value; 
+            const config = pairConfig[pair]; 
+            const contractSize = config.cs; 
+            const leverage = config.lev; 
+            const unitText = config.pip === 1 ? 'pts' : 'pips'; 
+            
+            // Calculate Distances even if only Entry and one other value is present 
+            if (entry && sl && !isNaN(entry) && !isNaN(sl)) { 
+                const lossPerUnitQuote = Math.abs(entry - sl); 
+                const pipDistSL = lossPerUnitQuote * config.pip; 
+                document.getElementById('sl-distance').innerText = `${pipDistSL.toFixed(1)} ${unitText}`; 
+                
+                // Direction Logic 
+                const dirLabel = document.getElementById('trade-dir'); 
+                if (entry > sl) { 
+                    dirLabel.innerText = "LONG"; 
+                    dirLabel.style.color = "var(--success)"; 
+                } else if (entry < sl) { 
+                    dirLabel.innerText = "SHORT"; 
+                    dirLabel.style.color = "var(--danger)"; 
+                } else { 
+                    dirLabel.innerText = ""; 
+                } 
+            } else { 
+                document.getElementById('sl-distance').innerText = ''; 
+                document.getElementById('trade-dir').innerText = ''; 
+            } 
+            
+            if (entry && tp && !isNaN(entry) && !isNaN(tp)) { 
+                const rewardPerUnitQuote = Math.abs(tp - entry); 
+                const pipDistTP = rewardPerUnitQuote * config.pip; 
+                document.getElementById('tp-distance').innerText = `${pipDistTP.toFixed(1)} ${unitText}`; 
+            } else { 
+                document.getElementById('tp-distance').innerText = ''; 
+            } 
+            
+            if (!entry || !sl || isNaN(entry) || isNaN(sl)) { 
+                // Keep distances visible but reset lot calculations 
+                document.getElementById('res-lots').innerText = '0.00'; 
+                document.getElementById('res-risk-aud').innerText = '$0.00'; 
+                document.getElementById('res-reward-aud').innerText = '$0.00'; 
+                document.getElementById('res-rr').innerText = '0.00'; 
+                document.getElementById('res-comm').innerText = '$0.00'; 
+                document.getElementById('res-pos-margin').innerText = '$0.00'; 
+                document.getElementById('res-fut-margin').innerText = '$0.00'; 
+                document.getElementById('res-free-margin').innerText = '$0.00'; 
+                document.getElementById('res-max-lots').innerText = '0.00'; 
+                return; 
+            } 
+            
+            const balance = parseFloat(document.getElementById('balance').value) || 0; 
+            const riskPct = parseFloat(document.getElementById('risk').value) || 0; 
+            const currentMargin = parseFloat(document.getElementById('current-margin').value) || 0; 
+            let audToQuoteRate = parseFloat(document.getElementById('manual-rate').value) || 1; 
+            
+            const riskAmountAud = balance * (riskPct / 100); 
+            let availableTradeRiskAud = riskAmountAud - FLAT_COMMISSION; 
+            if (availableTradeRiskAud < 0) availableTradeRiskAud = 0; 
+            
+            const lossPerUnitQuote = Math.abs(entry - sl); 
+            const lossPerUnitAud = lossPerUnitQuote / audToQuoteRate; 
+            let lots = 0; 
+            if (lossPerUnitAud > 0) { 
+                lots = availableTradeRiskAud / (contractSize * lossPerUnitAud); 
+                lots = Math.floor(lots * 100) / 100; 
+            } 
+            
+            const actualTradeRiskAud = lots * contractSize * lossPerUnitAud; 
+            const actualTotalRiskAud = lots > 0 ? actualTradeRiskAud + FLAT_COMMISSION : 0; 
+            let netRewardAud = 0; 
+            let rrRatio = 0; 
+            
+            if (tp && tp !== 0 && lots > 0) { 
+                const rewardPerUnitQuote = Math.abs(tp - entry); 
+                const rewardPerUnitAud = rewardPerUnitQuote / audToQuoteRate; 
+                const grossRewardAud = lots * contractSize * rewardPerUnitAud; 
+                netRewardAud = grossRewardAud - FLAT_COMMISSION; 
+                if (actualTotalRiskAud > 0) { 
+                    rrRatio = netRewardAud / actualTotalRiskAud; 
+                } 
+            } 
+            
+            const base = getBaseCurrency(pair); 
+            let marginPerUnitAud = 0; 
+            if (base === "US500" || base === "US2000" || base === "DE40" || base === "XAU" || base === "XAG") { 
+                marginPerUnitAud = (entry / leverage) / audToQuoteRate; 
+            } else { 
+                let audToBaseRate = exchangeRates[base] || 1; 
+                marginPerUnitAud = (1 / leverage) / audToBaseRate; 
+            } 
+            
+            const posMargin = lots * contractSize * marginPerUnitAud; 
+            const futUsedMargin = currentMargin + posMargin; 
+            const freeMargin = balance - futUsedMargin; 
+            let maxLots = marginPerUnitAud > 0 ? (balance - currentMargin) / (contractSize * marginPerUnitAud) : 0; 
+            if(maxLots < 0) maxLots = 0; 
+            
+            // Updated label updates 
+            document.getElementById('res-lots').innerText = lots.toFixed(2); 
+            document.getElementById('res-risk-aud').innerText = "$" + fmt.format(actualTotalRiskAud); 
+            document.getElementById('res-reward-aud').innerText = tp ? "$" + fmt.format(netRewardAud) : "N/A"; 
+            document.getElementById('res-rr').innerText = tp ? rrRatio.toFixed(2) : "N/A"; 
+            document.getElementById('res-comm').innerText = lots > 0 ? "$" + fmt.format(FLAT_COMMISSION) : "$0.00"; 
+            document.getElementById('res-pos-margin').innerText = "$" + fmt.format(posMargin); 
+            document.getElementById('res-fut-margin').innerText = "$" + fmt.format(futUsedMargin); 
+            document.getElementById('res-free-margin').innerText = "$" + fmt.format(freeMargin); 
+            document.getElementById('res-max-lots').innerText = maxLots.toFixed(2); 
+        } 
+        
+        function clearTrade() { 
+            document.getElementById('entry').value = ''; 
+            document.getElementById('sl').value = ''; 
+            document.getElementById('tp').value = ''; 
+            resetResults(); 
+        } 
+        
+        function copyLots() { 
+            const lotSize = document.getElementById('res-lots').innerText; 
+            if (lotSize === '0.00' || lotSize === '') return; 
+            navigator.clipboard.writeText(lotSize).then(() => { 
+                const btn = document.getElementById('copy-btn'); 
+                btn.innerText = 'Copied!'; 
+                setTimeout(() => { btn.innerText = 'Copy'; }, 2000); 
+            }).catch(err => { console.error('Failed to copy text: ', err); }); 
+        } 
+        
+        loadSettings(); 
+        fetchRates();
+    </script>
+</body>
+</html>
