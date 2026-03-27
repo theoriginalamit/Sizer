@@ -1,7 +1,8 @@
 {
   "name": "Position Sizer",
   "short_name": "Sizer",
-  "start_url": "/",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#131722",
   "theme_color": "#131722",
