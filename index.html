@@ -30,7 +30,7 @@
             color: var(--text-main); 
             margin: 0; 
             padding: 15px; 
-            padding-bottom: 400px;
+            padding-bottom: 280px;
         }
         h2 { 
             text-align: center; 
@@ -201,7 +201,19 @@
         label { 
             font-size: 0.8rem; 
             color: var(--text-muted); 
-            margin-bottom: 4px; 
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .copy-indicator {
+            font-size: 0.7rem;
+            opacity: 0.5;
+            transition: opacity 0.2s ease;
+        }
+        .clickable-copy:active + .copy-indicator,
+        input:active ~ label .copy-indicator {
+            opacity: 1;
         } 
         input, select { 
             background-color: var(--bg-color); 
@@ -216,6 +228,21 @@
         } 
         input:focus, select:focus { 
             border-color: var(--text-muted); 
+        }
+        input.clickable-copy {
+            position: relative;
+            cursor: pointer;
+        }
+        input.clickable-copy:active {
+            background-color: rgba(38, 166, 154, 0.1);
+            border-color: var(--success);
+        }
+        input.copy-flash {
+            animation: copyFlash 0.5s ease;
+        }
+        @keyframes copyFlash {
+            0%, 100% { background-color: var(--bg-color); }
+            50% { background-color: rgba(38, 166, 154, 0.2); }
         }
         input.invalid {
             border-color: var(--danger);
@@ -414,26 +441,26 @@
         <div class="row">
             <div class="col">
                 <div class="header-row">
-                    <label>Entry Price</label>
+                    <label>Entry Price <span class="copy-indicator">📋 Tap to copy</span></label>
                     <span id="trade-dir" class="dir-label"></span>
                 </div>
-                <input type="number" id="entry" step="0.00001" oninput="calculate()">
+                <input type="number" id="entry" class="clickable-copy" step="0.00001" oninput="calculate()" onclick="copyInputValue('entry')">
             </div>
         </div>
         <div class="row">
             <div class="col">
                 <div class="header-row">
-                    <label>Stop Loss</label>
+                    <label>Stop Loss <span class="copy-indicator">📋</span></label>
                     <span id="sl-distance" class="pip-distance-inline"></span>
                 </div>
-                <input type="number" id="sl" step="0.00001" oninput="calculate()">
+                <input type="number" id="sl" class="clickable-copy" step="0.00001" oninput="calculate()" onclick="copyInputValue('sl')">
             </div>
             <div class="col">
                 <div class="header-row">
-                    <label>Take Profit</label>
+                    <label>Take Profit <span class="copy-indicator">📋</span></label>
                     <span id="tp-distance" class="pip-distance-inline"></span>
                 </div>
-                <input type="number" id="tp" step="0.00001" oninput="calculate()">
+                <input type="number" id="tp" class="clickable-copy" step="0.00001" oninput="calculate()" onclick="copyInputValue('tp')">
             </div>
         </div>
         
@@ -458,37 +485,6 @@
                 <div id="res-lots" class="sticky-lots">0.00</div>
             </div>
             <button id="copy-lots-btn" class="copy-btn" onclick="copyValue('res-lots', 'copy-lots-btn')">Copy</button>
-        </div>
-
-        <!-- Individual Copy Buttons for Trade Details -->
-        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
-            <div class="result-item-with-copy">
-                <div>
-                    <div class="result-label">Entry</div>
-                    <div class="result-value-row">
-                        <span id="copy-entry-value" class="result-value">—</span>
-                        <button id="copy-entry-btn" class="copy-btn" onclick="copyValue('copy-entry-value', 'copy-entry-btn')" style="font-size: 0.75rem; padding: 4px 12px;">Copy</button>
-                    </div>
-                </div>
-            </div>
-            <div class="result-item-with-copy">
-                <div>
-                    <div class="result-label">Stop Loss</div>
-                    <div class="result-value-row">
-                        <span id="copy-sl-value" class="result-value">—</span>
-                        <button id="copy-sl-btn" class="copy-btn" onclick="copyValue('copy-sl-value', 'copy-sl-btn')" style="font-size: 0.75rem; padding: 4px 12px;">Copy</button>
-                    </div>
-                </div>
-            </div>
-            <div class="result-item-with-copy">
-                <div>
-                    <div class="result-label">Take Profit</div>
-                    <div class="result-value-row">
-                        <span id="copy-tp-value" class="result-value">—</span>
-                        <button id="copy-tp-btn" class="copy-btn" onclick="copyValue('copy-tp-value', 'copy-tp-btn')" style="font-size: 0.75rem; padding: 4px 12px;">Copy</button>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -732,9 +728,6 @@
             document.getElementById('sl-distance').innerText = ''; 
             document.getElementById('tp-distance').innerText = ''; 
             document.getElementById('trade-dir').innerText = ''; 
-            document.getElementById('copy-entry-value').innerText = '—';
-            document.getElementById('copy-sl-value').innerText = '—';
-            document.getElementById('copy-tp-value').innerText = '—';
         } 
         
         function clearTrade() {
@@ -755,11 +748,6 @@
             const contractSize = config.cs; 
             const leverage = config.lev; 
             const unitText = config.pip === 1 ? 'pts' : 'pips'; 
-            
-            // Update copy values for Entry/SL/TP
-            document.getElementById('copy-entry-value').innerText = entry ? entry.toFixed(5) : '—';
-            document.getElementById('copy-sl-value').innerText = sl ? sl.toFixed(5) : '—';
-            document.getElementById('copy-tp-value').innerText = tp ? tp.toFixed(5) : '—';
             
             if (entry && sl && !isNaN(entry) && !isNaN(sl)) { 
                 const lossPerUnitQuote = Math.abs(entry - sl); 
@@ -877,6 +865,28 @@
             }).catch(err => { 
                 console.error('Failed to copy text: ', err); 
             }); 
+        }
+
+        // Copy input field value (Entry, SL, TP)
+        function copyInputValue(inputId) {
+            const input = document.getElementById(inputId);
+            const value = input.value;
+            
+            if (!value || value === '' || value === '0') {
+                return; // Don't copy empty or zero values
+            }
+            
+            haptic('light');
+            
+            navigator.clipboard.writeText(value).then(() => {
+                // Visual feedback - flash green
+                input.classList.add('copy-flash');
+                setTimeout(() => {
+                    input.classList.remove('copy-flash');
+                }, 500);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
         }
 
         // Economic Calendar Functions
