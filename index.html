@@ -1,39 +1,369 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#131722">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Position Sizer</title>
     <style>
-        :root { --bg-color: #131722; --card-bg: #1e222d; --text-main: #d1d4dc; --text-muted: #8a8a8a; --accent: #8a8a8a; --success: #26a69a; --danger: #cf6679; --border: #2a2e39; } 
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; } 
-        body { background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 15px; padding-bottom: 340px;} /* Increased to accommodate the taller sticky footer */
-        h2 { text-align: center; margin-top: 5px; color: var(--text-main); font-size: 1.4rem; font-weight: 500;} 
-        .card { background-color: var(--card-bg); border-radius: 8px; padding: 15px; margin-bottom: 15px; border: 1px solid var(--border); } 
-        .row { display: flex; gap: 10px; margin-bottom: 12px; } 
-        .col { flex: 1; display: flex; flex-direction: column; } 
-        label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; } 
-        input, select { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-size: 1rem; width: 100%; outline: none; } 
-        input:focus, select:focus { border-color: var(--text-muted); } 
-        .btn-secondary { background-color: transparent; color: var(--text-muted); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 1rem; font-weight: bold; width: 100%; cursor: pointer; margin-top: 10px; } 
-        .btn-secondary:active { background-color: #2a2e39; } 
-        .copy-btn { background-color: transparent; color: var(--success); border: 1px solid var(--success); border-radius: 6px; padding: 8px 16px; font-size: 0.95rem; cursor: pointer; font-weight: bold; } 
-        .copy-btn:active { background-color: rgba(38, 166, 154, 0.2); } 
-        .result-box { margin-bottom: 10px; } 
-        .result-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.95rem; color: var(--text-main); } 
-        .header-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; } 
-        .dir-label { font-size: 0.85rem; font-weight: bold; } 
-        .pip-distance-inline { font-size: 0.8rem; color: var(--accent); } 
-        /* Sticky Footer Styles */ 
-        .sticky-footer { position: fixed; bottom: 0; left: 0; width: 100%; background-color: var(--card-bg); border-top: 1px solid var(--border); padding: 15px 20px; z-index: 1000; box-shadow: 0 -4px 10px rgba(0,0,0,0.5); display: flex; flex-direction: column; } 
-        .sticky-footer-bottom { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 5px; }
-        .sticky-lots { font-size: 1.4rem; font-weight: bold; color: var(--success); }
+        :root { 
+            --bg-color: #131722; 
+            --card-bg: #1e222d; 
+            --text-main: #d1d4dc; 
+            --text-muted: #8a8a8a; 
+            --accent: #8a8a8a; 
+            --success: #26a69a; 
+            --danger: #cf6679; 
+            --warning: #ff9800;
+            --border: #2a2e39; 
+        } 
+        * { 
+            box-sizing: border-box; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            -webkit-tap-highlight-color: transparent;
+        } 
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 15px; 
+            padding-bottom: 400px;
+        }
+        h2 { 
+            text-align: center; 
+            margin-top: 5px; 
+            color: var(--text-main); 
+            font-size: 1.4rem; 
+            font-weight: 500;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        } 
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        .status-online { background-color: var(--success); }
+        .status-cached { background-color: var(--warning); }
+        .status-offline { background-color: var(--danger); }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .status-text {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: -5px;
+            margin-bottom: 10px;
+        }
+        .card { 
+            background-color: var(--card-bg); 
+            border-radius: 8px; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            border: 1px solid var(--border); 
+        } 
+        .news-banner {
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.15), rgba(207, 102, 121, 0.15));
+            border: 1px solid var(--warning);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .news-banner:active {
+            transform: scale(0.98);
+        }
+        .news-banner-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .news-banner-title {
+            color: var(--warning);
+            font-weight: bold;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .news-banner-arrow {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            transition: transform 0.2s ease;
+        }
+        .news-banner-arrow.expanded {
+            transform: rotate(180deg);
+        }
+        .news-item {
+            font-size: 0.9rem;
+            color: var(--text-main);
+            margin-bottom: 3px;
+        }
+        .news-time {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+        .news-urgent {
+            color: var(--danger);
+            font-weight: bold;
+        }
+        .news-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .news-modal-content {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 500px;
+            margin: 40px auto;
+            border: 1px solid var(--border);
+        }
+        .news-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+        .news-modal-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+        .news-modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .news-modal-item {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .news-modal-item:last-child {
+            border-bottom: none;
+        }
+        .news-modal-time {
+            color: var(--warning);
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+        .news-modal-event {
+            color: var(--text-main);
+            margin-top: 4px;
+            font-size: 0.95rem;
+        }
+        .news-modal-footer {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .row { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 12px; 
+        } 
+        .col { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+        } 
+        label { 
+            font-size: 0.8rem; 
+            color: var(--text-muted); 
+            margin-bottom: 4px; 
+        } 
+        input, select { 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            border: 1px solid var(--border); 
+            border-radius: 4px; 
+            padding: 10px; 
+            font-size: 1rem; 
+            width: 100%; 
+            outline: none;
+            transition: border-color 0.2s ease;
+        } 
+        input:focus, select:focus { 
+            border-color: var(--text-muted); 
+        }
+        input.invalid {
+            border-color: var(--danger);
+            animation: shake 0.3s ease;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .btn-secondary { 
+            background-color: transparent; 
+            color: var(--text-muted); 
+            border: 1px solid var(--border); 
+            border-radius: 6px; 
+            padding: 12px; 
+            font-size: 1rem; 
+            font-weight: bold; 
+            width: 100%; 
+            cursor: pointer; 
+            margin-top: 10px;
+            transition: all 0.2s ease;
+        } 
+        .btn-secondary:active { 
+            background-color: #2a2e39;
+            transform: scale(0.98);
+        } 
+        .copy-btn { 
+            background-color: transparent; 
+            color: var(--success); 
+            border: 1px solid var(--success); 
+            border-radius: 6px; 
+            padding: 8px 16px; 
+            font-size: 0.85rem; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        } 
+        .copy-btn:active { 
+            background-color: rgba(38, 166, 154, 0.2);
+            transform: scale(0.95);
+        }
+        .copy-btn.copied {
+            color: var(--text-main);
+            border-color: var(--text-main);
+        }
+        .result-box { 
+            margin-bottom: 10px; 
+        } 
+        .result-item { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 6px; 
+            font-size: 0.95rem; 
+            color: var(--text-main); 
+        } 
+        .result-item-with-copy {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 8px;
+            background-color: rgba(42, 46, 57, 0.5);
+            border-radius: 6px;
+        }
+        .result-item-with-copy .result-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .result-item-with-copy .result-value-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 4px;
+        }
+        .result-item-with-copy .result-value {
+            font-size: 1rem;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+        .header-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: baseline; 
+            margin-bottom: 4px; 
+        } 
+        .dir-label { 
+            font-size: 0.85rem; 
+            font-weight: bold; 
+        } 
+        .pip-distance-inline { 
+            font-size: 0.8rem; 
+            color: var(--accent); 
+        } 
+        .sticky-footer { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            width: 100%; 
+            background-color: var(--card-bg); 
+            border-top: 1px solid var(--border); 
+            padding: 15px 20px; 
+            z-index: 1000; 
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.5); 
+            display: flex; 
+            flex-direction: column; 
+        } 
+        .sticky-footer-bottom { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-top: 1px solid var(--border); 
+            padding-top: 12px; 
+            margin-top: 5px; 
+        }
+        .sticky-lots { 
+            font-size: 1.4rem; 
+            font-weight: bold; 
+            color: var(--success); 
+        }
     </style>
 </head>
 <body>
 
-    <h2>Position Sizer</h2>
+    <h2>
+        Position Sizer
+        <span id="status-indicator" class="status-indicator status-offline"></span>
+    </h2>
+    <div id="status-text" class="status-text">Connecting...</div>
+
+    <!-- Economic Calendar Banner -->
+    <div id="news-banner" style="display:none;"></div>
+
+    <!-- Economic Calendar Modal -->
+    <div id="news-modal" class="news-modal">
+        <div class="news-modal-content">
+            <div class="news-modal-header">
+                <div class="news-modal-title">Today's High Impact News</div>
+                <button class="news-modal-close" onclick="closeNewsModal()">×</button>
+            </div>
+            <div id="news-modal-events"></div>
+            <div class="news-modal-footer" id="news-update-time"></div>
+        </div>
+    </div>
 
     <div class="card">
         <div class="row">
@@ -54,11 +384,21 @@
             <div class="col">
                 <label>Pair</label>
                 <select id="pair" onchange="updatePairDefaults(); calculate();">
-                    <option value="US500">US500</option><option value="US2000">US2000</option><option value="DE40">DE40</option>
-                    <option value="GBPUSD" selected>GBPUSD</option><option value="EURUSD">EURUSD</option>
-                    <option value="USDCHF">USDCHF</option><option value="USDJPY">USDJPY</option><option value="USDCAD">USDCAD</option>
-                    <option value="AUDUSD">AUDUSD</option><option value="NZDUSD">NZDUSD</option><option value="EURGBP">EURGBP</option>
-                    <option value="EURJPY">EURJPY</option><option value="GBPJPY">GBPJPY</option><option value="XAUUSD">XAUUSD</option><option value="XAGUSD">XAGUSD</option>
+                    <option value="US500">US500</option>
+                    <option value="US2000">US2000</option>
+                    <option value="DE40">DE40</option>
+                    <option value="GBPUSD" selected>GBPUSD</option>
+                    <option value="EURUSD">EURUSD</option>
+                    <option value="USDCHF">USDCHF</option>
+                    <option value="USDJPY">USDJPY</option>
+                    <option value="USDCAD">USDCAD</option>
+                    <option value="AUDUSD">AUDUSD</option>
+                    <option value="NZDUSD">NZDUSD</option>
+                    <option value="EURGBP">EURGBP</option>
+                    <option value="EURJPY">EURJPY</option>
+                    <option value="GBPJPY">GBPJPY</option>
+                    <option value="XAUUSD">XAUUSD</option>
+                    <option value="XAGUSD">XAGUSD</option>
                 </select>
             </div>
         </div>
@@ -113,17 +453,59 @@
         </div>
 
         <div class="sticky-footer-bottom">
-            <div>
+            <div style="flex: 1;">
                 <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Position Size (Lots)</div>
                 <div id="res-lots" class="sticky-lots">0.00</div>
             </div>
-            <button id="copy-btn" class="copy-btn" onclick="copyLots()">Copy</button>
+            <button id="copy-lots-btn" class="copy-btn" onclick="copyValue('res-lots', 'copy-lots-btn')">Copy</button>
+        </div>
+
+        <!-- Individual Copy Buttons for Trade Details -->
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+            <div class="result-item-with-copy">
+                <div>
+                    <div class="result-label">Entry</div>
+                    <div class="result-value-row">
+                        <span id="copy-entry-value" class="result-value">—</span>
+                        <button id="copy-entry-btn" class="copy-btn" onclick="copyValue('copy-entry-value', 'copy-entry-btn')" style="font-size: 0.75rem; padding: 4px 12px;">Copy</button>
+                    </div>
+                </div>
+            </div>
+            <div class="result-item-with-copy">
+                <div>
+                    <div class="result-label">Stop Loss</div>
+                    <div class="result-value-row">
+                        <span id="copy-sl-value" class="result-value">—</span>
+                        <button id="copy-sl-btn" class="copy-btn" onclick="copyValue('copy-sl-value', 'copy-sl-btn')" style="font-size: 0.75rem; padding: 4px 12px;">Copy</button>
+                    </div>
+                </div>
+            </div>
+            <div class="result-item-with-copy">
+                <div>
+                    <div class="result-label">Take Profit</div>
+                    <div class="result-value-row">
+                        <span id="copy-tp-value" class="result-value">—</span>
+                        <button id="copy-tp-btn" class="copy-btn" onclick="copyValue('copy-tp-value', 'copy-tp-btn')" style="font-size: 0.75rem; padding: 4px 12px;">Copy</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./service-worker.js')
+                .then(reg => console.log('Service Worker registered'))
+                .catch(err => console.log('Service Worker registration failed:', err));
+        }
+
         let exchangeRates = {}; 
-        const FLAT_COMMISSION = 9.00; // Hardcoded $9 round turn 
+        let ratesFetchTime = null;
+        const FLAT_COMMISSION = 9.00;
+        const RATE_CACHE_DURATION = 6 * 60 * 60 * 1000; // 6 hours
+        const SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+        
         const pairConfig = { 
             "US500": { lev: 20, cs: 1, pip: 1 }, 
             "US2000": { lev: 10, cs: 1, pip: 1 }, 
@@ -141,31 +523,174 @@
             "XAUUSD": { lev: 20, cs: 100, pip: 10 }, 
             "XAGUSD": { lev: 10, cs: 1000, pip: 100 } 
         }; 
+        
         const fmt = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); 
         
+        // Haptic feedback helper
+        function haptic(type = 'light') {
+            if (navigator.vibrate) {
+                if (type === 'error') {
+                    navigator.vibrate([50, 30, 50, 30, 50]); // Triple buzz for errors
+                } else {
+                    navigator.vibrate(50); // Single light buzz
+                }
+            }
+        }
+
+        // Save persistent settings (localStorage)
         function saveSettings() { 
             localStorage.setItem('ps_balance', document.getElementById('balance').value); 
             localStorage.setItem('ps_risk', document.getElementById('risk').value); 
         } 
         
+        // Load persistent settings
         function loadSettings() { 
-            if (localStorage.getItem('ps_balance')) document.getElementById('balance').value = localStorage.getItem('ps_balance'); 
-            if (localStorage.getItem('ps_risk')) document.getElementById('risk').value = localStorage.getItem('ps_risk'); 
-        } 
+            if (localStorage.getItem('ps_balance')) {
+                document.getElementById('balance').value = localStorage.getItem('ps_balance');
+            }
+            if (localStorage.getItem('ps_risk')) {
+                document.getElementById('risk').value = localStorage.getItem('ps_risk');
+            }
+        }
+
+        // Save session data (sessionStorage)
+        function saveSession() {
+            const sessionData = {
+                pair: document.getElementById('pair').value,
+                entry: document.getElementById('entry').value,
+                sl: document.getElementById('sl').value,
+                tp: document.getElementById('tp').value,
+                timestamp: Date.now()
+            };
+            sessionStorage.setItem('ps_session', JSON.stringify(sessionData));
+        }
+
+        // Load session data if recent
+        function loadSession() {
+            const sessionData = sessionStorage.getItem('ps_session');
+            if (sessionData) {
+                try {
+                    const data = JSON.parse(sessionData);
+                    const timeDiff = Date.now() - data.timestamp;
+                    
+                    if (timeDiff < SESSION_TIMEOUT) {
+                        document.getElementById('pair').value = data.pair || 'GBPUSD';
+                        document.getElementById('entry').value = data.entry || '';
+                        document.getElementById('sl').value = data.sl || '';
+                        document.getElementById('tp').value = data.tp || '';
+                    } else {
+                        sessionStorage.removeItem('ps_session');
+                    }
+                } catch (e) {
+                    sessionStorage.removeItem('ps_session');
+                }
+            }
+        }
+
+        // Input validation
+        function validateInput(element, min = 0, max = null) {
+            const value = parseFloat(element.value);
+            
+            if (isNaN(value) || value <= min || (max && value > max)) {
+                element.classList.add('invalid');
+                haptic('error');
+                setTimeout(() => element.classList.remove('invalid'), 300);
+                return false;
+            }
+            return true;
+        }
+
+        // Validate all inputs on calculate
+        function validateAllInputs() {
+            const balance = document.getElementById('balance');
+            const risk = document.getElementById('risk');
+            const entry = document.getElementById('entry');
+            const sl = document.getElementById('sl');
+            
+            let valid = true;
+            
+            if (balance.value && !validateInput(balance, 0)) valid = false;
+            if (risk.value && !validateInput(risk, 0, 100)) valid = false;
+            if (entry.value && !validateInput(entry, 0)) valid = false;
+            if (sl.value && !validateInput(sl, 0)) valid = false;
+            
+            // Warn if risk is high (but don't block)
+            if (parseFloat(risk.value) > 5) {
+                haptic('error');
+            }
+            
+            return valid;
+        }
+
+        // Update status indicator
+        function updateStatusIndicator(status, text) {
+            const indicator = document.getElementById('status-indicator');
+            const statusText = document.getElementById('status-text');
+            
+            indicator.className = 'status-indicator';
+            
+            if (status === 'online') {
+                indicator.classList.add('status-online');
+                statusText.textContent = text || 'Live rates';
+            } else if (status === 'cached') {
+                indicator.classList.add('status-cached');
+                statusText.textContent = text || 'Cached rates';
+            } else {
+                indicator.classList.add('status-offline');
+                statusText.textContent = text || 'Manual entry';
+            }
+        }
         
         document.getElementById('balance').addEventListener('input', saveSettings); 
-        document.getElementById('risk').addEventListener('input', saveSettings); 
+        document.getElementById('risk').addEventListener('input', saveSettings);
+        
+        // Save session on input changes
+        document.getElementById('pair').addEventListener('change', saveSession);
+        document.getElementById('entry').addEventListener('input', saveSession);
+        document.getElementById('sl').addEventListener('input', saveSession);
+        document.getElementById('tp').addEventListener('input', saveSession);
         
         async function fetchRates() { 
             try { 
                 const response = await fetch('https://api.exchangerate-api.com/v4/latest/AUD'); 
                 const data = await response.json(); 
-                exchangeRates = data.rates; 
-                document.getElementById('manual-rate-row').style.display = 'none'; 
+                exchangeRates = data.rates;
+                ratesFetchTime = Date.now();
+                
+                // Cache rates
+                localStorage.setItem('ps_cached_rates', JSON.stringify(exchangeRates));
+                localStorage.setItem('ps_rates_time', ratesFetchTime.toString());
+                
+                document.getElementById('manual-rate-row').style.display = 'none';
+                updateStatusIndicator('online', 'Live rates');
                 updatePairDefaults(); 
                 calculate(); 
-            } catch (e) { 
-                document.getElementById('manual-rate-row').style.display = 'flex'; 
+            } catch (e) {
+                // Try to load cached rates
+                const cachedRates = localStorage.getItem('ps_cached_rates');
+                const cachedTime = localStorage.getItem('ps_rates_time');
+                
+                if (cachedRates && cachedTime) {
+                    exchangeRates = JSON.parse(cachedRates);
+                    ratesFetchTime = parseInt(cachedTime);
+                    
+                    const cacheAge = Date.now() - ratesFetchTime;
+                    if (cacheAge < RATE_CACHE_DURATION) {
+                        const hoursAgo = Math.floor(cacheAge / (60 * 60 * 1000));
+                        const minutesAgo = Math.floor((cacheAge % (60 * 60 * 1000)) / (60 * 1000));
+                        const timeText = hoursAgo > 0 ? `${hoursAgo}h ago` : `${minutesAgo}m ago`;
+                        
+                        document.getElementById('manual-rate-row').style.display = 'none';
+                        updateStatusIndicator('cached', `Cached ${timeText}`);
+                        updatePairDefaults();
+                        calculate();
+                        return;
+                    }
+                }
+                
+                // Fallback to manual entry
+                document.getElementById('manual-rate-row').style.display = 'flex';
+                updateStatusIndicator('offline', 'Enter rates manually');
                 updatePairDefaults(); 
             } 
         } 
@@ -207,6 +732,18 @@
             document.getElementById('sl-distance').innerText = ''; 
             document.getElementById('tp-distance').innerText = ''; 
             document.getElementById('trade-dir').innerText = ''; 
+            document.getElementById('copy-entry-value').innerText = '—';
+            document.getElementById('copy-sl-value').innerText = '—';
+            document.getElementById('copy-tp-value').innerText = '—';
+        } 
+        
+        function clearTrade() {
+            haptic('light');
+            document.getElementById('entry').value = ''; 
+            document.getElementById('sl').value = ''; 
+            document.getElementById('tp').value = ''; 
+            resetResults();
+            saveSession(); // Clear session storage
         } 
         
         function calculate() { 
@@ -219,13 +756,16 @@
             const leverage = config.lev; 
             const unitText = config.pip === 1 ? 'pts' : 'pips'; 
             
-            // Calculate Distances even if only Entry and one other value is present 
+            // Update copy values for Entry/SL/TP
+            document.getElementById('copy-entry-value').innerText = entry ? entry.toFixed(5) : '—';
+            document.getElementById('copy-sl-value').innerText = sl ? sl.toFixed(5) : '—';
+            document.getElementById('copy-tp-value').innerText = tp ? tp.toFixed(5) : '—';
+            
             if (entry && sl && !isNaN(entry) && !isNaN(sl)) { 
                 const lossPerUnitQuote = Math.abs(entry - sl); 
                 const pipDistSL = lossPerUnitQuote * config.pip; 
                 document.getElementById('sl-distance').innerText = `${pipDistSL.toFixed(1)} ${unitText}`; 
                 
-                // Direction Logic 
                 const dirLabel = document.getElementById('trade-dir'); 
                 if (entry > sl) { 
                     dirLabel.innerText = "LONG"; 
@@ -250,7 +790,6 @@
             } 
             
             if (!entry || !sl || isNaN(entry) || isNaN(sl)) { 
-                // Keep distances visible but reset lot calculations 
                 document.getElementById('res-lots').innerText = '0.00'; 
                 document.getElementById('res-risk-aud').innerText = '$0.00'; 
                 document.getElementById('res-reward-aud').innerText = '$0.00'; 
@@ -310,7 +849,6 @@
             let maxLots = marginPerUnitAud > 0 ? (balance - currentMargin) / (contractSize * marginPerUnitAud) : 0; 
             if(maxLots < 0) maxLots = 0; 
             
-            // Updated label updates 
             document.getElementById('res-lots').innerText = lots.toFixed(2); 
             document.getElementById('res-risk-aud').innerText = "$" + fmt.format(actualTotalRiskAud); 
             document.getElementById('res-reward-aud').innerText = tp ? "$" + fmt.format(netRewardAud) : "N/A"; 
@@ -322,25 +860,228 @@
             document.getElementById('res-max-lots').innerText = maxLots.toFixed(2); 
         } 
         
-        function clearTrade() { 
-            document.getElementById('entry').value = ''; 
-            document.getElementById('sl').value = ''; 
-            document.getElementById('tp').value = ''; 
-            resetResults(); 
-        } 
+        function copyValue(elementId, buttonId) {
+            haptic('light');
+            const value = document.getElementById(elementId).innerText;
+            if (value === '0.00' || value === '' || value === '—') return;
+            
+            navigator.clipboard.writeText(value).then(() => { 
+                const btn = document.getElementById(buttonId); 
+                const originalText = btn.innerText;
+                btn.innerText = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => { 
+                    btn.innerText = originalText;
+                    btn.classList.remove('copied');
+                }, 1500); 
+            }).catch(err => { 
+                console.error('Failed to copy text: ', err); 
+            }); 
+        }
+
+        // Economic Calendar Functions
+        let todaysNews = [];
+
+        async function fetchEconomicCalendar() {
+            try {
+                const response = await fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.xml');
+                const xmlText = await response.text();
+                
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+                const events = xmlDoc.getElementsByTagName('event');
+                
+                const today = new Date();
+                const todaySydney = new Date(today.toLocaleString('en-US', { timeZone: 'Australia/Sydney' }));
+                const todayDateStr = todaySydney.toISOString().split('T')[0];
+                
+                todaysNews = [];
+                
+                for (let i = 0; i < events.length; i++) {
+                    const event = events[i];
+                    const impact = event.getElementsByTagName('impact')[0]?.textContent;
+                    
+                    if (impact === 'High') {
+                        const country = event.getElementsByTagName('country')[0]?.textContent || '';
+                        const title = event.getElementsByTagName('title')[0]?.textContent || '';
+                        const dateStr = event.getElementsByTagName('date')[0]?.textContent || '';
+                        const timeStr = event.getElementsByTagName('time')[0]?.textContent || '';
+                        
+                        // Skip All Day / Tentative events
+                        if (timeStr.toLowerCase().includes('all day') || 
+                            timeStr.toLowerCase().includes('tentative')) {
+                            continue;
+                        }
+                        
+                        // Parse date/time
+                        try {
+                            const [month, day, year] = dateStr.split('-');
+                            const cleanTime = timeStr.trim().toUpperCase();
+                            const dateTimeStr = `${year}-${month}-${day} ${cleanTime}`;
+                            
+                            // Create date in GMT then convert to Sydney
+                            const eventDate = new Date(dateTimeStr + ' GMT');
+                            if (isNaN(eventDate.getTime())) continue;
+                            
+                            const eventSydney = new Date(eventDate.toLocaleString('en-US', { timeZone: 'Australia/Sydney' }));
+                            const eventDateStr = eventSydney.toISOString().split('T')[0];
+                            
+                            // Only include today's events
+                            if (eventDateStr === todayDateStr) {
+                                const sydTime = eventSydney.toLocaleTimeString('en-US', { 
+                                    timeZone: 'Australia/Sydney',
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                    hour12: true 
+                                });
+                                
+                                todaysNews.push({
+                                    title: `${country} - ${title}`,
+                                    time: sydTime,
+                                    timestamp: eventDate.getTime(),
+                                    eventDate: eventSydney
+                                });
+                            }
+                        } catch (e) {
+                            continue;
+                        }
+                    }
+                }
+                
+                // Sort by time
+                todaysNews.sort((a, b) => a.timestamp - b.timestamp);
+                
+                // Cache news data
+                localStorage.setItem('ps_cached_news', JSON.stringify(todaysNews));
+                localStorage.setItem('ps_news_time', Date.now().toString());
+                
+                updateNewsBanner();
+                
+            } catch (e) {
+                console.error('Failed to fetch economic calendar:', e);
+                
+                // Try to load cached news
+                const cachedNews = localStorage.getItem('ps_cached_news');
+                const cachedTime = localStorage.getItem('ps_news_time');
+                
+                if (cachedNews && cachedTime) {
+                    const cacheAge = Date.now() - parseInt(cachedTime);
+                    if (cacheAge < 24 * 60 * 60 * 1000) { // 24 hours
+                        todaysNews = JSON.parse(cachedNews);
+                        updateNewsBanner();
+                    }
+                }
+            }
+        }
+
+        function updateNewsBanner() {
+            const banner = document.getElementById('news-banner');
+            
+            if (todaysNews.length === 0) {
+                banner.style.display = 'none';
+                return;
+            }
+            
+            const now = Date.now();
+            const upcomingNews = todaysNews.filter(news => {
+                const minutesUntil = (news.timestamp - now) / 60000;
+                return minutesUntil > 0 && minutesUntil <= 120; // Next 2 hours
+            });
+            
+            if (upcomingNews.length === 0) {
+                banner.style.display = 'none';
+                return;
+            }
+            
+            // Show banner with next upcoming news
+            const nextNews = upcomingNews[0];
+            const minutesUntil = Math.round((nextNews.timestamp - now) / 60000);
+            
+            const urgentClass = minutesUntil <= 30 ? ' news-urgent' : '';
+            
+            banner.innerHTML = `
+                <div class="news-banner-header">
+                    <div class="news-banner-title">⚠️ High Impact News</div>
+                    <div class="news-banner-arrow">▼</div>
+                </div>
+                <div class="news-item${urgentClass}">
+                    <strong>${nextNews.title}</strong>
+                </div>
+                <div class="news-time${urgentClass}">
+                    ${nextNews.time} • in ${minutesUntil} min
+                </div>
+            `;
+            
+            banner.style.display = 'block';
+            banner.onclick = openNewsModal;
+            
+            // Update every minute
+            setTimeout(updateNewsBanner, 60000);
+        }
+
+        function openNewsModal() {
+            haptic('light');
+            const modal = document.getElementById('news-modal');
+            const eventsContainer = document.getElementById('news-modal-events');
+            const updateTime = document.getElementById('news-update-time');
+            
+            eventsContainer.innerHTML = '';
+            
+            if (todaysNews.length === 0) {
+                eventsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);">No high impact news today</div>';
+            } else {
+                const now = Date.now();
+                
+                todaysNews.forEach(news => {
+                    const isPast = news.timestamp < now;
+                    const itemClass = isPast ? ' style="opacity: 0.5;"' : '';
+                    
+                    eventsContainer.innerHTML += `
+                        <div class="news-modal-item"${itemClass}>
+                            <div class="news-modal-time">${news.time}</div>
+                            <div class="news-modal-event">${news.title}</div>
+                        </div>
+                    `;
+                });
+            }
+            
+            const cachedTime = localStorage.getItem('ps_news_time');
+            if (cachedTime) {
+                const updateDate = new Date(parseInt(cachedTime));
+                const timeStr = updateDate.toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: '2-digit',
+                    hour12: true 
+                });
+                updateTime.textContent = `Last updated: Today ${timeStr}`;
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        function closeNewsModal() {
+            haptic('light');
+            document.getElementById('news-modal').style.display = 'none';
+        }
+
+        // Close modal on background click
+        document.getElementById('news-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeNewsModal();
+            }
+        });
         
-        function copyLots() { 
-            const lotSize = document.getElementById('res-lots').innerText; 
-            if (lotSize === '0.00' || lotSize === '') return; 
-            navigator.clipboard.writeText(lotSize).then(() => { 
-                const btn = document.getElementById('copy-btn'); 
-                btn.innerText = 'Copied!'; 
-                setTimeout(() => { btn.innerText = 'Copy'; }, 2000); 
-            }).catch(err => { console.error('Failed to copy text: ', err); }); 
-        } 
-        
-        loadSettings(); 
+        // Initialize app
+        loadSettings();
+        loadSession();
         fetchRates();
+        fetchEconomicCalendar();
+        
+        // Refresh rates every 30 minutes
+        setInterval(fetchRates, 30 * 60 * 1000);
+        
+        // Refresh calendar every hour
+        setInterval(fetchEconomicCalendar, 60 * 60 * 1000);
     </script>
 </body>
 </html>
